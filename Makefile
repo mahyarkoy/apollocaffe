@@ -594,6 +594,9 @@ clean:
 	@- $(RM) $(PY$(PROJECT)_SO)
 	@- $(RM) $(MAT$(PROJECT)_SO)
 
+reset:
+	rm -rf build/tools/
+
 supercleanfiles:
 	$(eval SUPERCLEAN_FILES := $(strip \
 			$(foreach ext,$(SUPERCLEAN_EXTS), $(shell find . -name '*$(ext)' \
