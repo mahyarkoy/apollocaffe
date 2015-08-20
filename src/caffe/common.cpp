@@ -30,6 +30,7 @@ int64_t cluster_seedgen(void) {
 }
 
 
+/*
 void GlobalInit(int* pargc, char*** pargv) {
   // Google flags.
   ::gflags::ParseCommandLineFlags(pargc, pargv, true);
@@ -38,6 +39,7 @@ void GlobalInit(int* pargc, char*** pargv) {
   // Provide a backtrace on segfault.
   ::google::InstallFailureSignalHandler();
 }
+*/
 
 #ifdef CPU_ONLY  // CPU-only Caffe.
 
