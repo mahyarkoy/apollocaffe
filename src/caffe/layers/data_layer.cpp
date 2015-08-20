@@ -24,40 +24,6 @@ DataLayer<Dtype>::~DataLayer<Dtype>() {
 template <typename Dtype>
 void DataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
-  // Initialize DB
-  db_.reset(db::GetDB(this->layer_param_.data_param().backend()));
-  db_->Open(this->layer_param_.data_param().source(), db::READ);
-  cursor_.reset(db_->NewCursor());
-
-  // Check if we should randomly skip a few data points
-  if (this->layer_param_.data_param().rand_skip()) {
-    unsigned int skip = caffe_rng_rand() %
-                        this->layer_param_.data_param().rand_skip();
-    LOG(INFO) << "Skipping first " << skip << " data points.";
-    while (skip-- > 0) {
-      cursor_->Next();
-    }
-  }
-  // Read a data point, to initialize the prefetch and top blobs.
-  Datum datum;
-  datum.ParseFromString(cursor_->value());
-  // Use data_transformer to infer the expected blob shape from datum.
-  vector<int> top_shape = this->data_transformer_->InferBlobShape(datum);
-  this->transformed_data_.Reshape(top_shape);
-  // Reshape top[0] and prefetch_data according to the batch_size.
-  top_shape[0] = this->layer_param_.data_param().batch_size();
-  this->prefetch_data_.Reshape(top_shape);
-  top[0]->ReshapeLike(this->prefetch_data_);
-
-  LOG(INFO) << "output data size: " << top[0]->num() << ","
-      << top[0]->channels() << "," << top[0]->height() << ","
-      << top[0]->width();
-  // label
-  if (this->output_labels_) {
-    vector<int> label_shape(1, this->layer_param_.data_param().batch_size());
-    top[1]->Reshape(label_shape);
-    this->prefetch_label_.Reshape(label_shape);
-  }
 }
 
 // This function is used to create a thread that prefetches the data.
