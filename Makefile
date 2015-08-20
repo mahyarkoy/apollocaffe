@@ -390,7 +390,8 @@ endif
 	py mat py$(PROJECT) mat$(PROJECT) proto runtest \
 	superclean supercleanlist supercleanfiles warn everything
 
-all: $(STATIC_NAME) $(DYNAMIC_NAME) tools examples apollo
+#all: $(STATIC_NAME) $(DYNAMIC_NAME) tools examples apollo
+all: $(STATIC_NAME) tools 
 
 everything: $(EVERYTHING_TARGETS)
 
@@ -556,10 +557,14 @@ $(TOOL_BUILD_DIR)/%: $(TOOL_BUILD_DIR)/%.bin | $(TOOL_BUILD_DIR)
 	@ $(RM) $@
 	@ ln -s $(abspath $<) $@
 
-$(TOOL_BINS): %.bin : %.o | $(DYNAMIC_NAME)
+$(TOOL_BINS): %.bin : %.o | $(STATIC_NAME)
 	@ echo CXX/LD -o $@
-	$(Q)$(CXX) $< -o $@ $(LINKFLAGS) -l$(PROJECT) $(LDFLAGS) \
-		-Wl,-rpath,$(ORIGIN)/../lib
+	$(Q)$(CXX) $< -o $@ $(LINKFLAGS) $(STATIC_LINK_COMMAND) $(LDFLAGS) 
+
+#$(TOOL_BINS): %.bin : %.o | $(STATIC_NAME)
+#	@ echo CXX/LD -o $@
+#	$(Q)$(CXX) $< -o $@ $(LINKFLAGS) -l$(PROJECT) $(LDFLAGS) \
+#		-Wl,-rpath,$(ORIGIN)/../lib
 
 $(EXAMPLE_BINS): %.bin : %.o | $(DYNAMIC_NAME)
 	@ echo CXX/LD -o $@
