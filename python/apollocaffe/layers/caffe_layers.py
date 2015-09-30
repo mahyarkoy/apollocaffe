@@ -148,6 +148,11 @@ class ReLU(Layer):
     def __init__(self, name, **kwargs):
         super(ReLU, self).__init__(self, name, kwargs)
 
+class Reduction(Layer):
+    def __init__(self, name, axis, **kwargs):
+        kwargs['axis'] = axis
+        super(Reduction, self).__init__(self, name, kwargs)
+
 class Softmax(Layer):
     def __init__(self, name, **kwargs):
         super(Softmax, self).__init__(self, name, kwargs)
@@ -163,6 +168,10 @@ class Accuracy(Layer):
 class Transpose(Layer):
     def __init__(self, name, **kwargs):
         super(Transpose, self).__init__(self, name, kwargs)
+
+class Tile(Layer):
+    def __init__(self, name, **kwargs):
+        super(Tile, self).__init__(self, name, kwargs)
 
 class Unknown(Layer):
     def __init__(self, p):
