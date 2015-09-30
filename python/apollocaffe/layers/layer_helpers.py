@@ -1,4 +1,5 @@
 from apollocaffe.proto import caffe_pb2
+import six
 
 def param_name_dict():
     """Find out the correspondence between layer names and parameter names."""

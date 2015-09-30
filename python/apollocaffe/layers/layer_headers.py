@@ -84,6 +84,10 @@ class LossLayer(Layer):
         if 'ignore_label' in kwargs:
             ignore_label = kwargs['ignore_label']
             del kwargs['ignore_label']
+        normalize = None
+        if 'normalize' in kwargs:
+            normalize = kwargs['normalize']
+            del kwargs['normalize']
         loss_weight = None
         if 'loss_weight' in kwargs:
             loss_weight = kwargs['loss_weight']
@@ -91,6 +95,8 @@ class LossLayer(Layer):
         super(LossLayer, self).__init__(sublayer, name, kwargs)
         if ignore_label is not None:
             self.p.loss_param.ignore_label = ignore_label
+        if normalize is not None:
+            self.p.loss_param.normalize = normalize
         if loss_weight is not None:
             self.p.loss_weight.append(loss_weight)
         assert 'tops' not in kwargs or len(kwargs['tops']) == 1
