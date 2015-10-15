@@ -29,6 +29,11 @@ class Convolution(Layer):
             bias_filler = Filler('constant', 0.)
         self.p.convolution_param.bias_filler.CopyFrom(bias_filler.filler_param)
 
+class Scalar(Layer):
+    def __init__(self, name, axis, **kwargs):
+        kwargs['axis'] = axis
+        super(Scalar, self).__init__(self, name, kwargs)
+
 class Data(DataLayer):
     def __init__(self, name, source, batch_size, transform=None, **kwargs):
         kwargs['source'] = source
