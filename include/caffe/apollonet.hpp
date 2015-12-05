@@ -27,6 +27,9 @@ class ApolloNet {
 
   Dtype ForwardLayer(const string& layer_param_string);
 
+  Dtype ForwardLayerWithPtr(const string& layer_param_string, 
+      Dtype* data, Dtype* labels);
+
   Dtype ForwardLayer(const LayerParameter& layer_param);
 
   Dtype f(shared_ptr<Layer<Dtype> > layer);

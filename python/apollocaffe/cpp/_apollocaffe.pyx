@@ -272,7 +272,10 @@ cdef class ApolloNet:
                 self.thisptr.set_phase_test()
             else:
                 raise ValueError("phase must be one of ['train', 'test']")
+
     def f(self, layer):
+        cdef cnp.ndarray[float,ndim=4,mode="c"] arr_data
+        cdef cnp.ndarray[float,ndim=1,mode="c"] arr_labels
         if isinstance(layer, str):
             # create LayerParameter from string
             from apollocaffe.proto import caffe_pb2
@@ -281,6 +284,11 @@ cdef class ApolloNet:
             loss = self.thisptr.ForwardLayer(p.SerializeToString())
         elif not hasattr(layer, 'p'):
             loss = self.thisptr.ForwardLayer(layer.SerializeToString())
+        elif layer.p.type == "MemoryData":
+            arr_data = layer.data
+            arr_labels = layer.labels
+            loss = self.thisptr.ForwardLayerWithPtr(
+                layer.p.SerializeToString(), &arr_data[0,0,0,0], &arr_labels[0])
         elif layer.p.type != 'Py':
             loss = self.thisptr.ForwardLayer(layer.p.SerializeToString())
         else:

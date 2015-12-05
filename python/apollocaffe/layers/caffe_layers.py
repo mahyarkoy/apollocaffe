@@ -43,6 +43,12 @@ class Data(DataLayer):
         if transform is not None:
             self.p.transform_param.CopyFrom(transform.transform_param)
 
+class MemoryData(DataLayer):
+    def __init__(self, name, data, labels, **kwargs):
+        self.data = data
+        self.labels = labels
+        super(MemoryData, self).__init__(self, name, kwargs)
+
 class Dropout(Layer):
     def __init__(self, name, dropout_ratio, **kwargs):
         kwargs['dropout_ratio'] = dropout_ratio
