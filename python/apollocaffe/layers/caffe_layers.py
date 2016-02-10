@@ -159,6 +159,10 @@ class ReLU(Layer):
     def __init__(self, name, **kwargs):
         super(ReLU, self).__init__(self, name, kwargs)
 
+class Sigmoid(Layer):
+    def __init__(self, name, **kwargs):
+        super(Sigmoid, self).__init__(self, name, kwargs)
+
 class Reduction(Layer):
     def __init__(self, name, axis, **kwargs):
         kwargs['axis'] = axis
@@ -171,6 +175,10 @@ class Softmax(Layer):
 class SoftmaxWithLoss(LossLayer):
     def __init__(self, name, **kwargs):
         super(SoftmaxWithLoss, self).__init__(self, name, kwargs)
+
+class SigmoidCrossEntropyLoss(LossLayer):
+    def __init__(self, name, **kwargs):
+        super(SigmoidCrossEntropyLoss, self).__init__(self, name, kwargs)
 
 class Accuracy(Layer):
     def __init__(self, name, **kwargs):
