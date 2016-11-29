@@ -204,3 +204,7 @@ class Wordvec(Layer):
         if weight_filler is None:
             weight_filler = Filler('uniform', 0.1)
         self.p.wordvec_param.weight_filler.CopyFrom(weight_filler.filler_param)
+
+class MultinomialLogisticLoss(LossLayer):
+    def __init__(self, name, **kwargs):
+        super(MultinomialLogisticLoss, self).__init__(self, name, kwargs)
