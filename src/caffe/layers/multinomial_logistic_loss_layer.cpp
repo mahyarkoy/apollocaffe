@@ -11,12 +11,31 @@
 namespace caffe {
 
 template <typename Dtype>
+void MultinomialLogisticLossLayer<Dtype>::LayerSetUp(
+    const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
+  LossLayer<Dtype>::LayerSetUp(bottom, top);
+
+  has_ignore_label_ =
+    this->layer_param_.loss_param().has_ignore_label();
+  if (has_ignore_label_) {
+    ignore_label_ = this->layer_param_.loss_param().ignore_label();
+  }
+}
+
+template <typename Dtype>
 void MultinomialLogisticLossLayer<Dtype>::Reshape(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
   LossLayer<Dtype>::Reshape(bottom, top);
   CHECK_EQ(bottom[1]->channels(), 1);
   CHECK_EQ(bottom[1]->height(), 1);
   CHECK_EQ(bottom[1]->width(), 1);
+  outer_num_ = bottom[0]->count(0, 1);
+  inner_num_ = bottom[0]->count(2);
+  CHECK_EQ(outer_num_ * inner_num_, bottom[1]->count())
+      << "Number of labels must match number of predictions; "
+      << "e.g., if softmax axis == 1 and prediction shape is (N, C, H, W), "
+      << "label count (number of labels) must be N*H*W, "
+      << "with integer values in {0, 1, ..., C-1}.";
 }
 
 template <typename Dtype>
@@ -29,6 +48,8 @@ void MultinomialLogisticLossLayer<Dtype>::Forward_cpu(
   Dtype loss = 0;
   for (int i = 0; i < num; ++i) {
     int label = static_cast<int>(bottom_label[i]);
+    if (has_ignore_label_ && label == ignore_label_)
+        continue;
     Dtype prob = std::max(
         bottom_data[i * dim + label], Dtype(kLOG_THRESHOLD));
     loss -= log(prob);
@@ -41,8 +62,8 @@ void MultinomialLogisticLossLayer<Dtype>::Backward_cpu(
     const vector<Blob<Dtype>*>& top, const vector<bool>& propagate_down,
     const vector<Blob<Dtype>*>& bottom) {
   if (propagate_down[1]) {
-    LOG(FATAL) << this->type()
-               << " Layer cannot backpropagate to label inputs.";
+    //LOG(FATAL) << this->type()
+    //           << " Layer cannot backpropagate to label inputs.";
   }
   if (propagate_down[0]) {
     const Dtype* bottom_data = bottom[0]->cpu_data();
@@ -54,6 +75,8 @@ void MultinomialLogisticLossLayer<Dtype>::Backward_cpu(
     const Dtype scale = - top[0]->cpu_diff()[0] / num;
     for (int i = 0; i < num; ++i) {
       int label = static_cast<int>(bottom_label[i]);
+      if (has_ignore_label_ && label == ignore_label_)
+        continue
       Dtype prob = std::max(
           bottom_data[i * dim + label], Dtype(kLOG_THRESHOLD));
       bottom_diff[i * dim + label] = scale / prob;
