@@ -15,8 +15,9 @@
 
 namespace caffe {
 
-template <typename Dtype>
-class MultinomialLogisticLossLayerTest : public CPUDeviceTest<Dtype> {
+template <typename TypeParam>
+class MultinomialLogisticLossLayerTest : public MultiDeviceTest<TypeParam> {
+  typedef typename TypeParam::Dtype Dtype;
  protected:
   MultinomialLogisticLossLayerTest()
       : blob_bottom_data_(new Blob<Dtype>(10, 5, 1, 1)),
@@ -46,14 +47,15 @@ class MultinomialLogisticLossLayerTest : public CPUDeviceTest<Dtype> {
   vector<Blob<Dtype>*> blob_top_vec_;
 };
 
-TYPED_TEST_CASE(MultinomialLogisticLossLayerTest, TestDtypes);
+TYPED_TEST_CASE(MultinomialLogisticLossLayerTest, TestDtypesAndDevices);
 
 
-TYPED_TEST(MultinomialLogisticLossLayerTest, TestGradientCPU) {
+TYPED_TEST(MultinomialLogisticLossLayerTest, TestGradient) {
+  typedef typename TypeParam::Dtype Dtype;
   LayerParameter layer_param;
-  MultinomialLogisticLossLayer<TypeParam> layer(layer_param);
+  MultinomialLogisticLossLayer<Dtype> layer(layer_param);
   layer.SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
-  GradientChecker<TypeParam> checker(1e-2, 2*1e-2, 1701, 0, 0.05);
+  GradientChecker<Dtype> checker(1e-2, 2*1e-2, 1701, 0, 0.05);
   checker.CheckGradientExhaustive(&layer, this->blob_bottom_vec_,
       this->blob_top_vec_, 0);
 }

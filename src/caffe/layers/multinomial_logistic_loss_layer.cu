@@ -89,7 +89,7 @@ void MultinomialLogisticLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*
         CAFFE_CUDA_NUM_THREADS>>>(nthreads, prob_data, label, bottom_diff,
         outer_num_, dim, inner_num_, has_ignore_label_, ignore_label_);
     const Dtype loss_weight = top[0]->cpu_diff()[0];
-    caffe_gpu_scal(prob_.count(), loss_weight / outer_num_, bottom_diff);
+    caffe_gpu_scal(bottom[0]->count(), loss_weight / outer_num_, bottom_diff);
   }
 }
 
