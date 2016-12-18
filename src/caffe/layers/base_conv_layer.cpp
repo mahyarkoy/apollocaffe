@@ -111,7 +111,9 @@ void BaseConvolutionLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
   CHECK_EQ(bottom[0]->channels(), channels_) << "Input size incompatible with"
     " convolution kernel.";
   // TODO: generalize to handle inputs of different shapes.
-  for (int bottom_id = 1; bottom_id < bottom.size(); ++bottom_id) {
+  if (!IgnoreChecks())
+  {
+    for (int bottom_id = 1; bottom_id < bottom.size(); ++bottom_id) {
     CHECK_EQ(num_, bottom[bottom_id]->num()) << "Inputs must have same num.";
     CHECK_EQ(channels_, bottom[bottom_id]->channels())
         << "Inputs must have same channels.";
@@ -119,6 +121,7 @@ void BaseConvolutionLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
         << "Inputs must have same height.";
     CHECK_EQ(width_, bottom[bottom_id]->width())
         << "Inputs must have same width.";
+    }
   }
   // Shape the tops.
   compute_output_shape();
