@@ -101,17 +101,15 @@ template void caffe_conv(const Blob<double>* in,
     Blob<double>* out);
 
 template <typename TypeParam>
-class ParConvolutionLayerTest : public MultiDeviceTest<TypeParam> {
+class ParamConvolutionLayerTest : public MultiDeviceTest<TypeParam> {
   typedef typename TypeParam::Dtype Dtype;
 
  protected:
-  ParConvolutionLayerTest()
+  ParamConvolutionLayerTest()
       : blob_bottom_(new Blob<Dtype>(2, 4, 6, 6)),
         blob_bottom_1_(new Blob<Dtype>(5, 4, 3, 3)),
-        blob_top_(new Blob<Dtype>()) {
-          std::vector<int> v(1,5);
-          blob_bottom_2_ = new Blob<Dtype>(v);
-        }
+        blob_bottom_2_(new Blob<Dtype>(5, 1, 1, 1)),
+        blob_top_(new Blob<Dtype>()) {}
   
   virtual void SetUp() {
     // fill the values
@@ -127,7 +125,7 @@ class ParConvolutionLayerTest : public MultiDeviceTest<TypeParam> {
     blob_top_vec_.push_back(blob_top_);
   }
 
-  virtual ~ParConvolutionLayerTest() {
+  virtual ~ParamConvolutionLayerTest() {
     delete blob_bottom_;
     delete blob_bottom_1_;
     delete blob_bottom_2_;
@@ -149,9 +147,9 @@ class ParConvolutionLayerTest : public MultiDeviceTest<TypeParam> {
   vector<Blob<Dtype>*> blob_top_vec_;
 };
 
-TYPED_TEST_CASE(ParConvolutionLayerTest, TestDtypesAndDevices);
+TYPED_TEST_CASE(ParamConvolutionLayerTest, TestDtypesAndDevices);
 
-TYPED_TEST(ParConvolutionLayerTest, TestSetup) {
+TYPED_TEST(ParamConvolutionLayerTest, TestSetup) {
   typedef typename TypeParam::Dtype Dtype;
   LayerParameter layer_param;
   ConvolutionParameter* convolution_param =
@@ -160,7 +158,7 @@ TYPED_TEST(ParConvolutionLayerTest, TestSetup) {
   convolution_param->set_stride(1);
   convolution_param->set_num_output(5);
   shared_ptr<Layer<Dtype> > layer(
-      new ParConvolutionLayer<Dtype>(layer_param));
+      new ParamConvolutionLayer<Dtype>(layer_param));
   layer->SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
   EXPECT_EQ(this->blob_top_->num(), 1);
   EXPECT_EQ(this->blob_top_->channels(), 5);
@@ -168,7 +166,7 @@ TYPED_TEST(ParConvolutionLayerTest, TestSetup) {
   EXPECT_EQ(this->blob_top_->width(), 4);
 }
 
-TYPED_TEST(ParConvolutionLayerTest, TestSimpleConvolution) {
+TYPED_TEST(ParamConvolutionLayerTest, TestSimpleConvolution) {
   typedef typename TypeParam::Dtype Dtype;
   LayerParameter layer_param;
   ConvolutionParameter* convolution_param =
@@ -180,7 +178,7 @@ TYPED_TEST(ParConvolutionLayerTest, TestSimpleConvolution) {
   convolution_param->mutable_bias_filler()->set_type("constant");
   convolution_param->mutable_bias_filler()->set_value(0.1);
   shared_ptr<Layer<Dtype> > layer(
-      new ParConvolutionLayer<Dtype>(layer_param));
+      new ParamConvolutionLayer<Dtype>(layer_param));
   layer->SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
   layer->Forward(this->blob_bottom_vec_, this->blob_top_vec_);
   // Check against reference convolution.
@@ -196,7 +194,7 @@ TYPED_TEST(ParConvolutionLayerTest, TestSimpleConvolution) {
   }
 }
 
-TYPED_TEST(ParConvolutionLayerTest, TestGradient) {
+TYPED_TEST(ParamConvolutionLayerTest, TestGradient) {
   typedef typename TypeParam::Dtype Dtype;
   LayerParameter layer_param;
   ConvolutionParameter* convolution_param =
@@ -206,7 +204,7 @@ TYPED_TEST(ParConvolutionLayerTest, TestGradient) {
   convolution_param->set_num_output(5);
   convolution_param->mutable_weight_filler()->set_type("gaussian");
   convolution_param->mutable_bias_filler()->set_type("gaussian");
-  ParConvolutionLayer<Dtype> layer(layer_param);
+  ParamConvolutionLayer<Dtype> layer(layer_param);
   GradientChecker<Dtype> checker(1e-2, 1e-3);
   checker.CheckGradientExhaustive(&layer, this->blob_bottom_vec_,
       this->blob_top_vec_);
