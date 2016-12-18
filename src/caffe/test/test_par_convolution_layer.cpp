@@ -17,7 +17,7 @@ namespace caffe {
 // accumulate through explicit loops over input, output, and filters.
 template <typename Dtype>
 void caffe_conv(const Blob<Dtype>* in, ConvolutionParameter* conv_param,
-    const vector<shared_ptr<Blob<Dtype> > >& weights,
+    const vector<Blob<Dtype>* >& weights,
     Blob<Dtype>* out) {
   // Kernel size, stride, and pad
   int kernel_h, kernel_w;
@@ -93,11 +93,11 @@ void caffe_conv(const Blob<Dtype>* in, ConvolutionParameter* conv_param,
 
 template void caffe_conv(const Blob<float>* in,
     ConvolutionParameter* conv_param,
-    const vector<shared_ptr<Blob<float> > >& weights,
+    const vector< Blob<float>* >& weights,
     Blob<float>* out);
 template void caffe_conv(const Blob<double>* in,
     ConvolutionParameter* conv_param,
-    const vector<shared_ptr<Blob<double> > >& weights,
+    const vector< Blob<double>* >& weights,
     Blob<double>* out);
 
 template <typename TypeParam>
@@ -184,7 +184,10 @@ TYPED_TEST(ParamConvolutionLayerTest, TestSimpleConvolution) {
   // Check against reference convolution.
   const Dtype* top_data;
   const Dtype* ref_top_data;
-  std::vector<shared_ptr<Blob<Dtype>>> weights(blob_bottom_1_, blob_bottom_2_);
+  vector<Blob<Dtype>* > weights(2);
+  weights[0] = this->blob_bottom_1_;
+  weights[1] = this->blob_bottom_2_;
+
   caffe_conv(this->blob_bottom_, convolution_param, weights,
       this->MakeReferenceTop(this->blob_top_));
   top_data = this->blob_top_->cpu_data();
