@@ -4,6 +4,18 @@ Python Layers
 
 from layer_headers import PyLayer
 
+class FirstElementLoss(PyLayer):
+    def __init__(self, name, loss_weight=1, normalize=2, **kwargs):
+        PyLayer.__init__(self, name, dict(), **kwargs)
+        self.loss_weight = loss_weight
+    def reshape(self, bottom, top):
+        top[0].reshape((1,))
+    def forward(self, bottom, top):
+        top[0].reshape((1,))
+        top[0].data[...] = self.loss_weight*bottom[0].data[0,0,0,0]
+    def backward(self, top, bottom):
+        bottom[0].diff[0,0,0,0] += self.loss_weight
+
 class SamplePythonLayer(PyLayer):
     def forward(self, bottom, top):
         print len(bottom)

@@ -53,6 +53,9 @@ void ParamConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   if (this->bias_term_ && this->param_propagate_down_[1] && bottom.size() > 2) {
     Dtype* bias_diff = bottom[2]->mutable_cpu_diff();
     for (int n = 0; n < this->num_; ++n) {
+      // accumulate updates for nums, this is to restart at initial n
+      if (n > 0)
+        _acc_weight_update = true;
       this->backward_cpu_bias(bias_diff, top_diff + top[0]->offset(n));
     }
   }
@@ -60,6 +63,10 @@ void ParamConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     for (int n = 0; n < this->num_; ++n) {
       // gradient w.r.t. weight. Note that we will accumulate diffs.
       if (this->param_propagate_down_[0]) {
+        // accumulate updates for nums, this is to restart at initial n
+        if (n > 0)
+          _acc_weight_update = true;
+
         this->weight_cpu_gemm(bottom_data + bottom[0]->offset(n),
             top_diff + top[0]->offset(n), weight_diff);
       }

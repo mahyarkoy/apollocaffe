@@ -40,6 +40,9 @@ void ParamConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     // bottom[2] is the filter bias input
     Dtype* bias_diff = bottom[2]->mutable_gpu_diff();
     for (int n = 0; n < this->num_; ++n) {
+      // accumulate updates for nums, this is to restart at initial n
+      if (n > 0)
+        _acc_weight_update = true;
       this->backward_gpu_bias(bias_diff, top_diff + top[0]->offset(n));
     }
   }
@@ -49,6 +52,9 @@ void ParamConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     for (int n = 0; n < this->num_; ++n) {
       // gradient w.r.t. weight. Note that we will accumulate diffs.
       if (this->param_propagate_down_[0]) {
+        // accumulate updates for nums, this is to restart at initial n
+        if (n > 0)
+          _acc_weight_update = true;
         this->weight_gpu_gemm(bottom_data + bottom[0]->offset(n),
             top_diff + top[0]->offset(n), weight_diff);
       }

@@ -40,21 +40,26 @@ class Layer(object):
                 self.p.param[-1].decay_mult = param_decay_mults[i]
         default_params = set(['name', 'bottoms', 'tops',
                              'param_names', 'param_lr_mults',
-                             'param_decay_mults'])
+                             'param_decay_mults', 'layer_param_types'])
 
-        if param_type in layer_helpers.param_names:
-            proto_param = getattr(self.p, layer_helpers.param_names[param_type] + '_param')
-            for k, v in kwargs.iteritems():
-                if k in default_params:
-                    continue
-                try:
-                    layer_helpers.assign_proto(proto_param, k, v)
-                except AttributeError:
-                    raise AttributeError('Layer %s has no keyword argument %s=%s' % (param_type, k, v))
-        else:
-            for k, v in kwargs.iteritems():
-                if k not in default_params:
-                    raise AttributeError('Layer %s has no keyword argument %s=%s' % (param_type, k, v))
+        param_type_list = [param_type]
+        if 'layer_param_types' in kwargs:
+            param_type_list.extend(kwargs['layer_param_types'])
+        
+        for k, v in kwargs.iteritems():
+            if k in default_params:
+                continue
+            for pt in param_type_list:
+                if pt in layer_helpers.param_names:
+                    proto_param = getattr(self.p, layer_helpers.param_names[pt] + '_param')
+                    try:
+                        layer_helpers.assign_proto(proto_param, k, v)
+                    except AttributeError:
+                        pass
+                    else:
+                        break
+            else:
+                raise AttributeError('Layer %s has no keyword argument %s=%s' % (param_type, k, v))
 
 class PyLayer(Layer):
     def __init__(self, name, pythonargs, **kwargs):

@@ -34,6 +34,7 @@ class BaseConvolutionLayer : public Layer<Dtype> {
   virtual inline int MinTopBlobs() const { return 1; }
   virtual inline bool EqualNumBottomTopBlobs() const { return true; }
   virtual inline bool IgnoreChecks() const {return false;}
+  virtual inline int WeightUpdateRate() {return 1;}
 
  protected:
   // Helper functions that abstract away the column buffer and gemm arguments.
@@ -209,11 +210,20 @@ class ParamConvolutionLayer : public BaseConvolutionLayer<Dtype> {
    *    kernels + stream parallelism) engines.
    */
   explicit ParamConvolutionLayer(const LayerParameter& param)
-      : BaseConvolutionLayer<Dtype>(param) {}
+      : BaseConvolutionLayer<Dtype>(param), _acc_weight_update(false) {}
 
   virtual inline const char* type() const { return "ParamConvolution"; }
   virtual inline bool EqualNumBottomTopBlobs() const { return false; }
   virtual inline bool IgnoreChecks() const {return true;}
+  virtual inline int WeightUpdateRate() {
+    if (_acc_weight_update)
+    {
+      _acc_weight_update = false;
+      return 1;
+    }
+    else
+      return 0;
+  }
 
  protected:
   virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
@@ -226,6 +236,9 @@ class ParamConvolutionLayer : public BaseConvolutionLayer<Dtype> {
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
   virtual inline bool reverse_dimensions() { return false; }
   virtual void compute_output_shape();
+
+private:
+  bool _acc_weight_update;
 };
 
 

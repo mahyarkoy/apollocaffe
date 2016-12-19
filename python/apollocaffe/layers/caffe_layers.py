@@ -29,6 +29,20 @@ class Convolution(Layer):
             bias_filler = Filler('constant', 0.)
         self.p.convolution_param.bias_filler.CopyFrom(bias_filler.filler_param)
 
+class ParamConvolution(Layer):
+    def __init__(self, name, kernel_dim, num_output, weight_filler=None, bias_filler=None, **kwargs):
+        kwargs['kernel_h'] = kernel_dim[0]
+        kwargs['kernel_w'] = kernel_dim[1]
+        kwargs['num_output'] = num_output
+        kwargs['layer_param_types'] = ['Convolution']
+        super(ParamConvolution, self).__init__(self, name, kwargs)
+        if weight_filler is None:
+            weight_filler = Filler('xavier')
+        self.p.convolution_param.weight_filler.CopyFrom(weight_filler.filler_param)
+        if bias_filler is None:
+            bias_filler = Filler('constant', 0.)
+        self.p.convolution_param.bias_filler.CopyFrom(bias_filler.filler_param)
+
 class Scalar(Layer):
     def __init__(self, name, axis, **kwargs):
         kwargs['axis'] = axis
