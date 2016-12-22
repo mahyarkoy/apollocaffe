@@ -35,6 +35,7 @@ class BaseConvolutionLayer : public Layer<Dtype> {
   virtual inline bool EqualNumBottomTopBlobs() const { return true; }
   virtual inline bool IgnoreChecks() const {return false;}
   virtual inline int WeightUpdateRate() {return 1;}
+  virtual inline bool SingleWeightChannel() const {return false;}
 
  protected:
   // Helper functions that abstract away the column buffer and gemm arguments.
@@ -215,6 +216,7 @@ class ParamConvolutionLayer : public BaseConvolutionLayer<Dtype> {
   virtual inline const char* type() const { return "ParamConvolution"; }
   virtual inline bool EqualNumBottomTopBlobs() const { return false; }
   virtual inline bool IgnoreChecks() const {return true;}
+  virtual inline bool SingleWeightChannel() const {return true;}
   virtual inline int WeightUpdateRate() {
     if (_acc_weight_update)
     {

@@ -17,12 +17,12 @@ void ParamConvolutionLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& botto
   const Dtype* bottom_data = bottom[0]->gpu_data();
   Dtype* top_data = top[0]->mutable_gpu_data();
   for (int n = 0; n < this->num_; ++n) {
-    this->forward_gpu_gemm(bottom_data + bottom[0]->offset(n), weight,
+    this->forward_gpu_gemm(bottom_data + bottom[0]->offset(n), weight + bottom[1]->offset(n),
         top_data + top[0]->offset(n));
     if (this->bias_term_ && bottom.size() > 2) {
       // bottom[2] is the filter bias input
       const Dtype* bias = bottom[2]->gpu_data();
-      this->forward_gpu_bias(top_data + top[0]->offset(n), bias);
+      this->forward_gpu_bias(top_data + top[0]->offset(n), bias + bottom[2]->offset(n));
     }
   }
 }
@@ -33,34 +33,36 @@ void ParamConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   // bottom[1] is the filter weight input
   const Dtype* weight = bottom[1]->gpu_data();
   Dtype* weight_diff = bottom[1]->mutable_gpu_diff();
+
   // bottom[0] is the input data
   const Dtype* top_diff = top[0]->gpu_diff();
+  const Dtype* bottom_data = bottom[0]->gpu_data();
+  Dtype* bottom_diff = bottom[0]->mutable_gpu_diff();
+
   // Bias gradient, if necessary.
   if (this->bias_term_ && this->param_propagate_down_[1] && bottom.size() > 2) {
     // bottom[2] is the filter bias input
     Dtype* bias_diff = bottom[2]->mutable_gpu_diff();
     for (int n = 0; n < this->num_; ++n) {
       // accumulate updates for nums, this is to restart at initial n
-      if (n > 0)
-        _acc_weight_update = true;
-      this->backward_gpu_bias(bias_diff, top_diff + top[0]->offset(n));
+      //if (n > 0)
+      //  _acc_weight_update = true;
+      this->backward_gpu_bias(bias_diff + bottom[2]->offset(n), top_diff + top[0]->offset(n));
     }
   }
   if (this->param_propagate_down_[0] || propagate_down[0]) {
-    const Dtype* bottom_data = bottom[0]->gpu_data();
-    Dtype* bottom_diff = bottom[0]->mutable_gpu_diff();
     for (int n = 0; n < this->num_; ++n) {
       // gradient w.r.t. weight. Note that we will accumulate diffs.
       if (this->param_propagate_down_[0]) {
         // accumulate updates for nums, this is to restart at initial n
-        if (n > 0)
-          _acc_weight_update = true;
+        //if (n > 0)
+        //  _acc_weight_update = true;
         this->weight_gpu_gemm(bottom_data + bottom[0]->offset(n),
-            top_diff + top[0]->offset(n), weight_diff);
+            top_diff + top[0]->offset(n), weight_diff + bottom[1]->offset(n));
       }
       // gradient w.r.t. bottom data, if necessary.
       if (propagate_down[0]) {
-        this->backward_gpu_gemm(top_diff + top[0]->offset(n), weight,
+        this->backward_gpu_gemm(top_diff + top[0]->offset(n), weight + bottom[1]->offset(n),
             bottom_diff + bottom[0]->offset(n));
       }
     }
