@@ -17,7 +17,7 @@ namespace caffe {
 // Reference convolution for checking results:
 // accumulate through explicit loops over input, output, and filters.
 template <typename Dtype>
-void caffe_conv(const Blob<Dtype>* in, ConvolutionParameter* conv_param,
+void caffe_conv_separate_channel(const Blob<Dtype>* in, ConvolutionParameter* conv_param,
     const vector<shared_ptr<Blob<Dtype> > >& weights,
     Blob<Dtype>* out) {
   // Kernel size, stride, and pad
@@ -92,11 +92,11 @@ void caffe_conv(const Blob<Dtype>* in, ConvolutionParameter* conv_param,
   }
 }
 
-template void caffe_conv(const Blob<float>* in,
+template void caffe_conv_separate_channel(const Blob<float>* in,
     ConvolutionParameter* conv_param,
     const vector<shared_ptr<Blob<float> > >& weights,
     Blob<float>* out);
-template void caffe_conv(const Blob<double>* in,
+template void caffe_conv_separate_channel(const Blob<double>* in,
     ConvolutionParameter* conv_param,
     const vector<shared_ptr<Blob<double> > >& weights,
     Blob<double>* out);
@@ -209,13 +209,13 @@ TYPED_TEST(ParamConvolutionLayerTest, TestSimpleConvolution) {
   const Dtype* top_data;
   const Dtype* ref_top_data;
 
-  caffe_conv(this->blob_bottom_, convolution_param, weights,
+  caffe_conv_separate_channel(this->blob_bottom_, convolution_param, weights,
       this->MakeReferenceTop(this->blob_top_));
   top_data = this->blob_top_->cpu_data();
   ref_top_data = this->ref_blob_top_->cpu_data();
-  //std::cout << "====CONV====" << std::endl;
+  std::cout << "====CONV====" << std::endl;
   for (int i = 0; i < this->blob_top_->count(); ++i) {
-    //std::cout << top_data[i] << "__" << ref_top_data[i] << std::endl;
+    std::cout << top_data[i] << "__" << ref_top_data[i] << std::endl;
     EXPECT_NEAR(top_data[i], ref_top_data[i], 1e-4);
   }
 }
@@ -259,7 +259,7 @@ TYPED_TEST(ParamConvolutionLayerTest, TestRandomConvolution) {
   const Dtype* top_data;
   const Dtype* ref_top_data;
 
-  caffe_conv(this->blob_bottom_1_, convolution_param, weights,
+  caffe_conv_separate_channel(this->blob_bottom_1_, convolution_param, weights,
       this->MakeReferenceTop(this->blob_top_));
   top_data = this->blob_top_->cpu_data();
   ref_top_data = this->ref_blob_top_->cpu_data();
@@ -315,13 +315,13 @@ TYPED_TEST(ParamConvolutionLayerTest, Test2ChannelConvolution) {
   const Dtype* top_data;
   const Dtype* ref_top_data;
 
-  caffe_conv(this->blob_bottom_2_, convolution_param, weights,
+  caffe_conv_separate_channel(this->blob_bottom_2_, convolution_param, weights,
       this->MakeReferenceTop(this->blob_top_));
   top_data = this->blob_top_->cpu_data();
   ref_top_data = this->ref_blob_top_->cpu_data();
-  //std::cout << "====CONV====" << std::endl;
+  std::cout << "====CONV====" << std::endl;
   for (int i = 0; i < this->blob_top_->count(); ++i) {
-    //std::cout << top_data[i] << "__" << ref_top_data[i] << std::endl;
+    std::cout << top_data[i] << "__" << ref_top_data[i] << std::endl;
     EXPECT_NEAR(top_data[i], ref_top_data[i], 1e-4);
   }
 }
