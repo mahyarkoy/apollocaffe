@@ -206,6 +206,10 @@ class Tile(Layer):
     def __init__(self, name, **kwargs):
         super(Tile, self).__init__(self, name, kwargs)
 
+class TanH(Layer):
+    def __init__(self, name, **kwargs):
+        super(TanH, self).__init__(self, name, kwargs)
+
 class Unknown(Layer):
     def __init__(self, p):
         self.p = p
