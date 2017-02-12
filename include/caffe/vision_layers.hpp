@@ -34,7 +34,8 @@ class BaseConvolutionLayer : public Layer<Dtype> {
   virtual inline int MinTopBlobs() const { return 1; }
   virtual inline bool EqualNumBottomTopBlobs() const { return true; }
   virtual inline bool IgnoreChecks() const {return false;}
-  virtual inline int WeightUpdateRate() {return 1;}
+  virtual inline float WeightGradAccumRate() {return 1.0;}
+  virtual inline float InputGradAccumRate() {return 0.0;}
   virtual inline bool SingleWeightChannel() const {return false;}
 
  protected:
@@ -217,15 +218,17 @@ class ParamConvolutionLayer : public BaseConvolutionLayer<Dtype> {
   virtual inline bool EqualNumBottomTopBlobs() const { return false; }
   virtual inline bool IgnoreChecks() const {return true;}
   virtual inline bool SingleWeightChannel() const {return true;}
-  virtual inline int WeightUpdateRate() {
-    if (_acc_weight_update)
-    {
-      _acc_weight_update = false;
-      return 1;
-    }
-    else
-      return 0;
+  virtual inline float WeightGardAccumRate() {
+  //  if (_acc_weight_update)
+  //  {
+  //    _acc_weight_update = false;
+  //    return 1;
+  //  }
+  //  else
+  //    return 0;
+    return _acc_weight_update;
   }
+  virtual inline float InputGradAccumRate() {return _acc_input_update;}
 
  protected:
   virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
@@ -240,7 +243,8 @@ class ParamConvolutionLayer : public BaseConvolutionLayer<Dtype> {
   virtual void compute_output_shape();
 
 private:
-  bool _acc_weight_update;
+  float _acc_weight_update;
+  float _acc_input_update;
 };
 
 

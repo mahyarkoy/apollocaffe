@@ -50,6 +50,9 @@ void caffe_conv_separate_channel(const Blob<Dtype>* in, ConvolutionParameter* co
   // Convolution
   const Dtype* in_data = in->cpu_data();
   const Dtype* weight_data = weights[0]->cpu_data();
+  data_num = in->num();
+  weight_num = weights[0]->num();
+
   Dtype* out_data = out->mutable_cpu_data();
   for (int n = 0; n < out->num(); n++) {
     for (int g = 0; g < groups; g++) {
@@ -66,8 +69,8 @@ void caffe_conv_separate_channel(const Blob<Dtype>* in, ConvolutionParameter* co
                   if (in_y >= 0 && in_y < in->height()
                     && in_x >= 0 && in_x < in->width()) {
                     out_data[out->offset(n, o + o_head, y, x)] +=
-                        in_data[in->offset(n, k + k_head, in_y, in_x)]
-                        * weight_data[weights[0]->offset(n, k, p, q)];
+                        in_data[in->offset(n%data_num, k + k_head, in_y, in_x)]
+                        * weight_data[weights[0]->offset(n%weight_num, k, p, q)];
                   }
                 }
               }
@@ -84,7 +87,7 @@ void caffe_conv_separate_channel(const Blob<Dtype>* in, ConvolutionParameter* co
       for (int o = 0; o < out->channels(); o++) {
         for (int y = 0; y < out->height(); y++) {
           for (int x = 0; x < out->width(); x++) {
-            out_data[out->offset(n, o, y, x)] += bias_data[n];
+            out_data[out->offset(n, o, y, x)] += bias_data[n%weight_num];
           }
         }
       }

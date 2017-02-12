@@ -107,7 +107,11 @@ void BaseConvolutionLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   CHECK_EQ(4, bottom[0]->num_axes()) << "Input must have 4 axes, "
       << "corresponding to (num, channels, height, width)";
-  num_ = bottom[0]->num();
+  if (bottom.size() > 1)
+    num_ = bottom[0]->num() > bottom[1]->num() ? bottom[0]->num() : bottom[1]->num();
+  else
+    num_ = bottom[0]->num();
+
   height_ = bottom[0]->height();
   width_ = bottom[0]->width();
   CHECK_EQ(bottom[0]->channels(), channels_) << "Input size incompatible with"
@@ -197,7 +201,7 @@ void BaseConvolutionLayer<Dtype>::backward_cpu_gemm(const Dtype* output,
     caffe_cpu_gemm<Dtype>(CblasTrans, CblasNoTrans, kernel_dim_ / group_,
         conv_out_spatial_dim_, conv_out_channels_ / group_,
         (Dtype)1., weights + weight_offset_ * g, output + output_offset_ * g,
-        (Dtype)0., col_buff + col_offset_ * g);
+        (Dtype)InputGradAccumRate(), col_buff + col_offset_ * g);
   }
   if (!is_1x1_) {
     conv_col2im_cpu(col_buff, input);
@@ -216,7 +220,7 @@ void BaseConvolutionLayer<Dtype>::weight_cpu_gemm(const Dtype* input,
     caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasTrans, conv_out_channels_ / group_,
         kernel_dim_ / group_, conv_out_spatial_dim_,
         (Dtype)1., output + output_offset_ * g, col_buff + col_offset_ * g,
-        (Dtype)WeightUpdateRate(), weights + weight_offset_ * g);
+        (Dtype)WeightGradAccumRate(), weights + weight_offset_ * g);
   }
 }
 
@@ -224,7 +228,7 @@ template <typename Dtype>
 void BaseConvolutionLayer<Dtype>::backward_cpu_bias(Dtype* bias,
     const Dtype* input) {
   caffe_cpu_gemv<Dtype>(CblasNoTrans, num_output_, height_out_ * width_out_, 1.,
-      input, bias_multiplier_.cpu_data(), (Dtype)WeightUpdateRate(), bias);
+      input, bias_multiplier_.cpu_data(), (Dtype)WeightGradAccumRate(), bias);
 }
 
 #ifndef CPU_ONLY
@@ -266,7 +270,7 @@ void BaseConvolutionLayer<Dtype>::backward_gpu_gemm(const Dtype* output,
     caffe_gpu_gemm<Dtype>(CblasTrans, CblasNoTrans, kernel_dim_ / group_,
         conv_out_spatial_dim_, conv_out_channels_ / group_,
         (Dtype)1., weights + weight_offset_ * g, output + output_offset_ * g,
-        (Dtype)0., col_buff + col_offset_ * g);
+        (Dtype)InputGradAccumRate(), col_buff + col_offset_ * g);
   }
   if (!is_1x1_) {
     conv_col2im_gpu(col_buff, input);
@@ -285,7 +289,7 @@ void BaseConvolutionLayer<Dtype>::weight_gpu_gemm(const Dtype* input,
     caffe_gpu_gemm<Dtype>(CblasNoTrans, CblasTrans, conv_out_channels_ / group_,
         kernel_dim_ / group_, conv_out_spatial_dim_,
         (Dtype)1., output + output_offset_ * g, col_buff + col_offset_ * g,
-        (Dtype)WeightUpdateRate(), weights + weight_offset_ * g);
+        (Dtype)WeightGradAccumRate(), weights + weight_offset_ * g);
   }
 }
 
@@ -293,7 +297,7 @@ template <typename Dtype>
 void BaseConvolutionLayer<Dtype>::backward_gpu_bias(Dtype* bias,
     const Dtype* input) {
   caffe_gpu_gemv<Dtype>(CblasNoTrans, num_output_, height_out_ * width_out_, 1.,
-      input, bias_multiplier_.gpu_data(), (Dtype)WeightUpdateRate(), bias);
+      input, bias_multiplier_.gpu_data(), (Dtype)WeightGradAccumRate(), bias);
 }
 
 #endif  // !CPU_ONLY

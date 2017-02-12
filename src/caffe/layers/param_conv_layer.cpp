@@ -25,13 +25,17 @@ void ParamConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& botto
   // bottom[0] is the data input
   const Dtype* bottom_data = bottom[0]->cpu_data();
   Dtype* top_data = top[0]->mutable_cpu_data();
+  int data_num, weight_num;
+  data_num = bottom[0]->num();
+  weight_num = bottom[1]->num();
+  
   for (int n = 0; n < this->num_; ++n) {
-    this->forward_cpu_gemm(bottom_data + bottom[0]->offset(n), weight + bottom[1]->offset(n),
+    this->forward_cpu_gemm(bottom_data + bottom[0]->offset(n%data_num), weight + bottom[1]->offset(n%weight_num),
         top_data + top[0]->offset(n));
     if (this->bias_term_ && bottom.size() > 2) {
       // bottom[2] is the filter bias input
       const Dtype* bias = bottom[2]->cpu_data();
-      this->forward_cpu_bias(top_data + top[0]->offset(n), bias + bottom[2]->offset(n));
+      this->forward_cpu_bias(top_data + top[0]->offset(n), bias + bottom[2]->offset(n%weight_num));
     }
   }
 }
@@ -48,7 +52,10 @@ void ParamConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   const Dtype* top_diff = top[0]->cpu_diff();
   const Dtype* bottom_data = bottom[0]->cpu_data();
   Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
-
+  int data_num, weight_num;
+  data_num = bottom[0]->num();
+  weight_num = bottom[1]->num();
+  
   // Bias gradient, if necessary.
   if (this->bias_term_ && this->param_propagate_down_[1] && bottom.size() > 2) {
     Dtype* bias_diff = bottom[2]->mutable_cpu_diff();
@@ -56,7 +63,8 @@ void ParamConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       // accumulate updates for nums, this is to restart at initial n
       //if (n > 0)
       //  _acc_weight_update = true;
-      this->backward_cpu_bias(bias_diff + bottom[2]->offset(n), top_diff + top[0]->offset(n));
+      _acc_weight_update = (n == 0) ? 0.0 : 1.0;
+      this->backward_cpu_bias(bias_diff + bottom[2]->offset(n%weight_num), top_diff + top[0]->offset(n));
     }
   }
   if (this->param_propagate_down_[0] || propagate_down[0]) {
@@ -66,14 +74,15 @@ void ParamConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         // accumulate updates for nums, this is to restart at initial n
         //if (n > 0)
         //  _acc_weight_update = true;
-
-        this->weight_cpu_gemm(bottom_data + bottom[0]->offset(n),
-            top_diff + top[0]->offset(n), weight_diff + bottom[1]->offset(n));
+        _acc_weight_update = (n == 0) ? 0.0 : 1.0;
+        this->weight_cpu_gemm(bottom_data + bottom[0]->offset(n%data_num),
+            top_diff + top[0]->offset(n), weight_diff + bottom[1]->offset(n%weight_num));
       }
       // gradient w.r.t. bottom data, if necessary.
       if (propagate_down[0]) {
-        this->backward_cpu_gemm(top_diff + top[0]->offset(n), weight + bottom[1]->offset(n),
-            bottom_diff + bottom[0]->offset(n));
+        _acc_input_update = (n == 0) ? 0.0 : 1.0;
+        this->backward_cpu_gemm(top_diff + top[0]->offset(n), weight + bottom[1]->offset(n%weight_num),
+            bottom_diff + bottom[0]->offset(n%data_num));
       }
     }
   }
