@@ -50,6 +50,7 @@ void caffe_conv_separate_channel(const Blob<Dtype>* in, ConvolutionParameter* co
   // Convolution
   const Dtype* in_data = in->cpu_data();
   const Dtype* weight_data = weights[0]->cpu_data();
+  int data_num, weight_num;
   data_num = in->num();
   weight_num = weights[0]->num();
 
@@ -164,7 +165,7 @@ TYPED_TEST(ParamConvolutionLayerTest, TestSetup) {
   shared_ptr<Layer<Dtype> > layer(
       new ParamConvolutionLayer<Dtype>(layer_param));
   layer->SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
-  EXPECT_EQ(this->blob_top_->num(), 1);
+  EXPECT_EQ(this->blob_top_->num(), 2);
   EXPECT_EQ(this->blob_top_->channels(), 1);
   EXPECT_EQ(this->blob_top_->height(), 3);
   EXPECT_EQ(this->blob_top_->width(), 3);
@@ -329,6 +330,104 @@ TYPED_TEST(ParamConvolutionLayerTest, Test2ChannelConvolution) {
   }
 }
 
+TYPED_TEST(ParamConvolutionLayerTest, TestRandomConvolutionBroadcastInputs) {
+  typedef typename TypeParam::Dtype Dtype;
+  LayerParameter layer_param;
+  ConvolutionParameter* convolution_param =
+      layer_param.mutable_convolution_param();
+  convolution_param->set_kernel_size(3);
+  convolution_param->set_stride(1);
+  convolution_param->set_num_output(1);
+  convolution_param->mutable_weight_filler()->set_type("gaussian");
+  convolution_param->mutable_bias_filler()->set_type("constant");
+  convolution_param->mutable_bias_filler()->set_value(0.1);
+  shared_ptr<Layer<Dtype> > layer(
+      new ParamConvolutionLayer<Dtype>(layer_param));
+
+  // Make 6*4*3*3 filter for 2*4*6*6input
+  vector<shared_ptr<Blob<Dtype> > > weights (2);
+  weights[0].reset(new Blob<Dtype>(6,4,3,3));
+  weights[1].reset(new Blob<Dtype>(6,1,1,1));
+
+  FillerParameter filler_param;
+  filler_param.set_value(1.);
+  GaussianFiller<Dtype> filler(filler_param);
+  filler.Fill(this->blob_bottom_1_);
+  filler.Fill(weights[0].get());
+  filler.Fill(weights[1].get());
+
+  // Load inputs to vectors
+  this->blob_bottom_vec_.clear();
+  this->blob_bottom_vec_.push_back(this->blob_bottom_1_);
+  this->blob_bottom_vec_.push_back(weights[0].get());
+  this->blob_bottom_vec_.push_back(weights[1].get());
+
+  layer->SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
+  layer->Forward(this->blob_bottom_vec_, this->blob_top_vec_);
+
+  // Check against reference convolution.
+  const Dtype* top_data;
+  const Dtype* ref_top_data;
+
+  caffe_conv_separate_channel(this->blob_bottom_1_, convolution_param, weights,
+      this->MakeReferenceTop(this->blob_top_));
+  top_data = this->blob_top_->cpu_data();
+  ref_top_data = this->ref_blob_top_->cpu_data();
+  for (int i = 0; i < this->blob_top_->count(); ++i) {
+    EXPECT_NEAR(top_data[i], ref_top_data[i], 1e-4);
+  }
+}
+
+TYPED_TEST(ParamConvolutionLayerTest, TestRandomConvolutionBroadcastWeights) {
+  typedef typename TypeParam::Dtype Dtype;
+  LayerParameter layer_param;
+  ConvolutionParameter* convolution_param =
+      layer_param.mutable_convolution_param();
+  convolution_param->set_kernel_size(3);
+  convolution_param->set_stride(1);
+  convolution_param->set_num_output(1);
+  convolution_param->mutable_weight_filler()->set_type("gaussian");
+  convolution_param->mutable_bias_filler()->set_type("constant");
+  convolution_param->mutable_bias_filler()->set_value(0.1);
+  shared_ptr<Layer<Dtype> > layer(
+      new ParamConvolutionLayer<Dtype>(layer_param));
+
+  // Make 1*4*3*3 filter for 2*4*6*6input
+  vector<shared_ptr<Blob<Dtype> > > weights (2);
+  weights[0].reset(new Blob<Dtype>(1,4,3,3));
+  weights[1].reset(new Blob<Dtype>(1,1,1,1));
+
+  FillerParameter filler_param;
+  filler_param.set_value(1.);
+  GaussianFiller<Dtype> filler(filler_param);
+  filler.Fill(this->blob_bottom_1_);
+  filler.Fill(weights[0].get());
+  filler.Fill(weights[1].get());
+
+  // Load inputs to vectors
+  this->blob_bottom_vec_.clear();
+  this->blob_bottom_vec_.push_back(this->blob_bottom_1_);
+  this->blob_bottom_vec_.push_back(weights[0].get());
+  this->blob_bottom_vec_.push_back(weights[1].get());
+
+  layer->SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
+  layer->Forward(this->blob_bottom_vec_, this->blob_top_vec_);
+
+  // Check against reference convolution.
+  const Dtype* top_data;
+  const Dtype* ref_top_data;
+
+  caffe_conv_separate_channel(this->blob_bottom_1_, convolution_param, weights,
+      this->MakeReferenceTop(this->blob_top_));
+  top_data = this->blob_top_->cpu_data();
+  ref_top_data = this->ref_blob_top_->cpu_data();
+  for (int i = 0; i < this->blob_top_->count(); ++i) {
+    EXPECT_NEAR(top_data[i], ref_top_data[i], 1e-4);
+  }
+}
+
+/*******>>>>>>>>>>>>>GRADIENT TESTS<<<<<<<<<<<<<<********/
+
 TYPED_TEST(ParamConvolutionLayerTest, TestGradient) {
   typedef typename TypeParam::Dtype Dtype;
   LayerParameter layer_param;
@@ -367,6 +466,7 @@ TYPED_TEST(ParamConvolutionLayerTest, TestGradient) {
       this->blob_top_vec_);
 }
 /*
+//COMMENT THIS: WEIRD 0.02 ERROR IN ESTIMATING GRADIENT
 TYPED_TEST(ParamConvolutionLayerTest, Test2ChannelGradient) {
   typedef typename TypeParam::Dtype Dtype;
   LayerParameter layer_param;
@@ -380,23 +480,28 @@ TYPED_TEST(ParamConvolutionLayerTest, Test2ChannelGradient) {
   
   // Make 2*4*1*1 filter and 2*4*3*3input
   vector<shared_ptr<Blob<Dtype> > > weights (2);
-  weights[0].reset(new Blob<Dtype>(2,4,1,1));
-  weights[1].reset(new Blob<Dtype>(2,1,1,1));
+  weights[0].reset(new Blob<Dtype>(3,4,1,1));
+  weights[1].reset(new Blob<Dtype>(3,1,1,1));
   Dtype* input_data = this->blob_bottom_2_->mutable_cpu_data();
   Dtype* weight_data = weights[0]->mutable_cpu_data();
   Dtype* bias_data = weights[1]->mutable_cpu_data();
-  weight_data[0] = 0;
-  weight_data[1] = 1;
-  weight_data[2] = 2;
-  weight_data[3] = 3;
-  weight_data[4] = 4;
-  weight_data[5] = 5;
-  weight_data[6] = 6;
-  weight_data[7] = 7;
-  bias_data[0] = 100;
-  bias_data[1] = 200;
+  weight_data[0] = 0.;
+  weight_data[1] = 1.;
+  weight_data[2] = 2.;
+  weight_data[3] = 3.;
+  weight_data[4] = 4.;
+  weight_data[5] = 5.;
+  weight_data[6] = 6.;
+  weight_data[7] = 7.;
+  weight_data[8] = 8.;
+  weight_data[9] = 9.;
+  weight_data[10] = 10.;
+  weight_data[11] = 11.;
+  bias_data[0] = 100.;
+  bias_data[1] = 200.;
+  bias_data[2] = 300.;
   for(int i=0; i<72; i++)
-    input_data[i] = i;
+    input_data[i] = double(i);
 
   // Load inputs to vectors
   this->blob_bottom_vec_.clear();
@@ -422,21 +527,228 @@ TYPED_TEST(ParamConvolutionLayerTest, TestRandomGradient) {
   convolution_param->mutable_weight_filler()->set_type("gaussian");
   convolution_param->mutable_bias_filler()->set_type("gaussian");
   
-  // Make 5*4*3*3 filter for 2*4*6*6input
+  // Make 2*4*3*3 filter for 2*4*6*6input
   vector<shared_ptr<Blob<Dtype> > > weights (2);
+  shared_ptr<Blob<Dtype> > input_data;
   weights[0].reset(new Blob<Dtype>(2,4,3,3));
-  weights[1].reset(new Blob<Dtype>(2,1,1,1));
+  weights[1].reset(new Blob<Dtype>(2,1,3,3));
+  input_data.reset(new Blob<Dtype>(2,4,6,6));
 
   FillerParameter filler_param;
   filler_param.set_value(1.);
   GaussianFiller<Dtype> filler(filler_param);
-  filler.Fill(this->blob_bottom_1_);
+  filler.Fill(input_data.get());
   filler.Fill(weights[0].get());
   filler.Fill(weights[1].get());
 
   // Load inputs to vectors
   this->blob_bottom_vec_.clear();
-  this->blob_bottom_vec_.push_back(this->blob_bottom_1_);
+  this->blob_bottom_vec_.push_back(input_data.get());
+  this->blob_bottom_vec_.push_back(weights[0].get());
+  this->blob_bottom_vec_.push_back(weights[1].get());
+
+  this->blob_top_vec_.clear();
+  shared_ptr< Blob<Dtype> > top_data (new Blob<Dtype>());
+  this->blob_top_vec_.push_back(top_data.get());
+
+  ParamConvolutionLayer<Dtype> layer(layer_param);
+  GradientChecker<Dtype> checker(1e-2, 1e-3);
+  checker.CheckGradientExhaustive(&layer, this->blob_bottom_vec_,
+      this->blob_top_vec_);
+}
+
+TYPED_TEST(ParamConvolutionLayerTest, TestRandomGradientSingle) {
+  typedef typename TypeParam::Dtype Dtype;
+  LayerParameter layer_param;
+  ConvolutionParameter* convolution_param =
+      layer_param.mutable_convolution_param();
+  convolution_param->set_kernel_size(1);
+  convolution_param->set_stride(1);
+  convolution_param->set_num_output(1);
+  convolution_param->mutable_weight_filler()->set_type("gaussian");
+  convolution_param->mutable_bias_filler()->set_type("gaussian");
+  
+  // Make 2*4*3*3 filter for 2*4*6*6input
+  vector<shared_ptr<Blob<Dtype> > > weights (2);
+  shared_ptr<Blob<Dtype> > input_data;
+  weights[0].reset(new Blob<Dtype>(2,4,1,1));
+  weights[1].reset(new Blob<Dtype>(2,1,1,1));
+  input_data.reset(new Blob<Dtype>(2,4,3,3));
+
+  FillerParameter filler_param;
+  filler_param.set_value(1.);
+  GaussianFiller<Dtype> filler(filler_param);
+  filler.Fill(input_data.get());
+  filler.Fill(weights[0].get());
+  filler.Fill(weights[1].get());
+
+  // Load inputs to vectors
+  this->blob_bottom_vec_.clear();
+  this->blob_bottom_vec_.push_back(input_data.get());
+  this->blob_bottom_vec_.push_back(weights[0].get());
+  this->blob_bottom_vec_.push_back(weights[1].get());
+
+  this->blob_top_vec_.clear();
+  shared_ptr< Blob<Dtype> > top_data (new Blob<Dtype>());
+  this->blob_top_vec_.push_back(top_data.get());
+
+  ParamConvolutionLayer<Dtype> layer(layer_param);
+  GradientChecker<Dtype> checker(1e-2, 1e-3);
+  checker.CheckGradientExhaustive(&layer, this->blob_bottom_vec_,
+      this->blob_top_vec_);
+}
+
+TYPED_TEST(ParamConvolutionLayerTest, TestRandomGradientBroadcastInputs) {
+  typedef typename TypeParam::Dtype Dtype;
+  LayerParameter layer_param;
+  ConvolutionParameter* convolution_param =
+      layer_param.mutable_convolution_param();
+  convolution_param->set_kernel_size(3);
+  convolution_param->set_stride(1);
+  convolution_param->set_num_output(1);
+  convolution_param->mutable_weight_filler()->set_type("gaussian");
+  convolution_param->mutable_bias_filler()->set_type("gaussian");
+  
+  // Make 2*4*3*3 filter for 2*4*6*6input
+  vector<shared_ptr<Blob<Dtype> > > weights (2);
+  shared_ptr<Blob<Dtype> > input_data;
+  weights[0].reset(new Blob<Dtype>(6,4,3,3));
+  weights[1].reset(new Blob<Dtype>(6,1,3,3));
+  input_data.reset(new Blob<Dtype>(2,4,6,6));
+
+  FillerParameter filler_param;
+  filler_param.set_value(1.);
+  GaussianFiller<Dtype> filler(filler_param);
+  filler.Fill(input_data.get());
+  filler.Fill(weights[0].get());
+  filler.Fill(weights[1].get());
+
+  // Load inputs to vectors
+  this->blob_bottom_vec_.clear();
+  this->blob_bottom_vec_.push_back(input_data.get());
+  this->blob_bottom_vec_.push_back(weights[0].get());
+  this->blob_bottom_vec_.push_back(weights[1].get());
+
+  this->blob_top_vec_.clear();
+  shared_ptr< Blob<Dtype> > top_data (new Blob<Dtype>());
+  this->blob_top_vec_.push_back(top_data.get());
+
+  ParamConvolutionLayer<Dtype> layer(layer_param);
+  GradientChecker<Dtype> checker(1e-2, 1e-3);
+  checker.CheckGradientExhaustive(&layer, this->blob_bottom_vec_,
+      this->blob_top_vec_);
+}
+
+TYPED_TEST(ParamConvolutionLayerTest, TestRandomGradientBroadcastInputsSingle) {
+  typedef typename TypeParam::Dtype Dtype;
+  LayerParameter layer_param;
+  ConvolutionParameter* convolution_param =
+      layer_param.mutable_convolution_param();
+  convolution_param->set_kernel_size(1);
+  convolution_param->set_stride(1);
+  convolution_param->set_num_output(1);
+  convolution_param->mutable_weight_filler()->set_type("gaussian");
+  convolution_param->mutable_bias_filler()->set_type("gaussian");
+  
+  // Make 2*4*3*3 filter for 2*4*6*6input
+  vector<shared_ptr<Blob<Dtype> > > weights (2);
+  shared_ptr<Blob<Dtype> > input_data;
+  weights[0].reset(new Blob<Dtype>(6,4,1,1));
+  weights[1].reset(new Blob<Dtype>(6,1,1,1));
+  input_data.reset(new Blob<Dtype>(2,4,3,3));
+
+  FillerParameter filler_param;
+  filler_param.set_value(1.);
+  GaussianFiller<Dtype> filler(filler_param);
+  filler.Fill(input_data.get());
+  filler.Fill(weights[0].get());
+  filler.Fill(weights[1].get());
+
+  // Load inputs to vectors
+  this->blob_bottom_vec_.clear();
+  this->blob_bottom_vec_.push_back(input_data.get());
+  this->blob_bottom_vec_.push_back(weights[0].get());
+  this->blob_bottom_vec_.push_back(weights[1].get());
+
+  this->blob_top_vec_.clear();
+  shared_ptr< Blob<Dtype> > top_data (new Blob<Dtype>());
+  this->blob_top_vec_.push_back(top_data.get());
+
+  ParamConvolutionLayer<Dtype> layer(layer_param);
+  GradientChecker<Dtype> checker(1e-2, 1e-3);
+  checker.CheckGradientExhaustive(&layer, this->blob_bottom_vec_,
+      this->blob_top_vec_);
+}
+
+TYPED_TEST(ParamConvolutionLayerTest, TestRandomGradientBroadcastWeights) {
+  typedef typename TypeParam::Dtype Dtype;
+  LayerParameter layer_param;
+  ConvolutionParameter* convolution_param =
+      layer_param.mutable_convolution_param();
+  convolution_param->set_kernel_size(3);
+  convolution_param->set_stride(1);
+  convolution_param->set_num_output(1);
+  convolution_param->mutable_weight_filler()->set_type("gaussian");
+  convolution_param->mutable_bias_filler()->set_type("gaussian");
+  
+  // Make 2*4*3*3 filter for 2*4*6*6input
+  vector<shared_ptr<Blob<Dtype> > > weights (2);
+  shared_ptr<Blob<Dtype> > input_data;
+  weights[0].reset(new Blob<Dtype>(2,4,3,3));
+  weights[1].reset(new Blob<Dtype>(2,1,3,3));
+  input_data.reset(new Blob<Dtype>(6,4,6,6));
+
+  FillerParameter filler_param;
+  filler_param.set_value(1.);
+  GaussianFiller<Dtype> filler(filler_param);
+  filler.Fill(input_data.get());
+  filler.Fill(weights[0].get());
+  filler.Fill(weights[1].get());
+
+  // Load inputs to vectors
+  this->blob_bottom_vec_.clear();
+  this->blob_bottom_vec_.push_back(input_data.get());
+  this->blob_bottom_vec_.push_back(weights[0].get());
+  this->blob_bottom_vec_.push_back(weights[1].get());
+
+  this->blob_top_vec_.clear();
+  shared_ptr< Blob<Dtype> > top_data (new Blob<Dtype>());
+  this->blob_top_vec_.push_back(top_data.get());
+
+  ParamConvolutionLayer<Dtype> layer(layer_param);
+  GradientChecker<Dtype> checker(1e-2, 1e-3);
+  checker.CheckGradientExhaustive(&layer, this->blob_bottom_vec_,
+      this->blob_top_vec_);
+}
+
+TYPED_TEST(ParamConvolutionLayerTest, TestRandomGradientBroadcastWeightsSingle) {
+  typedef typename TypeParam::Dtype Dtype;
+  LayerParameter layer_param;
+  ConvolutionParameter* convolution_param =
+      layer_param.mutable_convolution_param();
+  convolution_param->set_kernel_size(1);
+  convolution_param->set_stride(1);
+  convolution_param->set_num_output(1);
+  convolution_param->mutable_weight_filler()->set_type("gaussian");
+  convolution_param->mutable_bias_filler()->set_type("gaussian");
+  
+  // Make 2*4*3*3 filter for 2*4*6*6input
+  vector<shared_ptr<Blob<Dtype> > > weights (2);
+  shared_ptr<Blob<Dtype> > input_data;
+  weights[0].reset(new Blob<Dtype>(2,4,1,1));
+  weights[1].reset(new Blob<Dtype>(2,1,1,1));
+  input_data.reset(new Blob<Dtype>(6,4,3,3));
+
+  FillerParameter filler_param;
+  filler_param.set_value(1.);
+  GaussianFiller<Dtype> filler(filler_param);
+  filler.Fill(input_data.get());
+  filler.Fill(weights[0].get());
+  filler.Fill(weights[1].get());
+
+  // Load inputs to vectors
+  this->blob_bottom_vec_.clear();
+  this->blob_bottom_vec_.push_back(input_data.get());
   this->blob_bottom_vec_.push_back(weights[0].get());
   this->blob_bottom_vec_.push_back(weights[1].get());
 

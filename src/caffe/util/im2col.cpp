@@ -49,8 +49,10 @@ void col2im_cpu(const Dtype* data_col, const int channels,
     const int height, const int width, const int patch_h, const int patch_w,
     const int pad_h, const int pad_w,
     const int stride_h, const int stride_w,
-    Dtype* data_im) {
-  caffe_set(height * width * channels, Dtype(0), data_im);
+    Dtype* data_im, const bool clear_input) {
+  // to accumulate updates if required
+  if (clear_input)
+    caffe_set(height * width * channels, Dtype(0), data_im);
   int height_col = (height + 2 * pad_h - patch_h) / stride_h + 1;
   int width_col = (width + 2 * pad_w - patch_w) / stride_w + 1;
   int channels_col = channels * patch_h * patch_w;
@@ -74,10 +76,10 @@ void col2im_cpu(const Dtype* data_col, const int channels,
 template void col2im_cpu<float>(const float* data_col, const int channels,
     const int height, const int width, const int patch_h, const int patch_w,
     const int pad_h, const int pad_w, const int stride_h,
-    const int stride_w, float* data_im);
+    const int stride_w, float* data_im, const bool clear_input);
 template void col2im_cpu<double>(const double* data_col, const int channels,
     const int height, const int width, const int patch_h, const int patch_w,
     const int pad_h, const int pad_w, const int stride_h,
-    const int stride_w, double* data_im);
+    const int stride_w, double* data_im, const bool clear_input);
 
 }  // namespace caffe

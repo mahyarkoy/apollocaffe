@@ -54,7 +54,7 @@ void ParamConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
       // accumulate updates for nums, this is to restart at initial n
       //if (n > 0)
       //  _acc_weight_update = true;
-      _acc_weight_update = (n == 0) ? 0.0 : 1.0;
+      //_acc_weight_update = (n < weight_num) ? 0.0 : 1.0;
       this->backward_gpu_bias(bias_diff + bottom[2]->offset(n%weight_num), top_diff + top[0]->offset(n));
     }
   }
@@ -65,13 +65,13 @@ void ParamConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
         // accumulate updates for nums, this is to restart at initial n
         //if (n > 0)
         //  _acc_weight_update = true;
-        _acc_weight_update = (n == 0) ? 0.0 : 1.0;
+        //_acc_weight_update = (n < weight_num) ? 0.0 : 1.0;
         this->weight_gpu_gemm(bottom_data + bottom[0]->offset(n%data_num),
             top_diff + top[0]->offset(n), weight_diff + bottom[1]->offset(n%weight_num));
       }
       // gradient w.r.t. bottom data, if necessary.
       if (propagate_down[0]) {
-        _acc_input_update = (n == 0) ? 0.0 : 1.0;
+        //_acc_input_update = (n < data_num) ? 0.0 : 1.0;
         this->backward_gpu_gemm(top_diff + top[0]->offset(n), weight + bottom[1]->offset(n%weight_num),
             bottom_diff + bottom[0]->offset(n%data_num));
       }

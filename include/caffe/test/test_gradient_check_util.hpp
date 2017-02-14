@@ -4,6 +4,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <iostream>
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -151,15 +152,14 @@ void GradientChecker<Dtype>::CheckGradientSingle(Layer<Dtype>* layer,
         positive_objective =
             GetObjAndGradient(*layer, top, top_id, top_data_id);
         // Compute loss with stepsize_ subtracted from input.
-        current_blob->mutable_cpu_data()[feat_id] -= stepsize_ * 2;
+        current_blob->mutable_cpu_data()[feat_id] -= stepsize_ * 2.0;
         Caffe::set_random_seed(seed_);
         layer->Forward(bottom, top);
         negative_objective =
             GetObjAndGradient(*layer, top, top_id, top_data_id);
         // Recover original input value.
         current_blob->mutable_cpu_data()[feat_id] += stepsize_;
-        estimated_gradient = (positive_objective - negative_objective) /
-            stepsize_ / 2.;
+        estimated_gradient = (positive_objective - negative_objective) / (2.0 * stepsize_);
       }
       Dtype computed_gradient = computed_gradients[feat_id];
       Dtype feature = current_blob->cpu_data()[feat_id];
@@ -199,6 +199,12 @@ void GradientChecker<Dtype>::CheckGradientExhaustive(Layer<Dtype>* layer,
     // LOG(ERROR) << "Exhaustive: blob " << i << " size " << top[i]->count();
     for (int j = 0; j < top[i]->count(); ++j) {
       // LOG(ERROR) << "Exhaustive: blob " << i << " data " << j;
+      
+      for (int k = 0; k < bottom.size(); ++k) {
+        Blob<Dtype>* bottom_blob = bottom[k];
+        Dtype* bottom_blob_diff = bottom_blob->mutable_cpu_diff();
+        caffe_set(bottom_blob->count(), Dtype(0), bottom_blob_diff);
+      }
       CheckGradientSingle(layer, bottom, top, check_bottom, i, j);
     }
   }

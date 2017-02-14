@@ -77,7 +77,7 @@ __global__ void col2im_gpu_kernel(const int n, const Dtype* data_col,
     const int pad_h, const int pad_w,
     const int stride_h, const int stride_w,
     const int height_col, const int width_col,
-    Dtype* data_im) {
+    Dtype* data_im, const bool clear_input) {
   CUDA_KERNEL_LOOP(index, n) {
     Dtype val = 0;
     int w = index % width + pad_w;
@@ -108,7 +108,11 @@ __global__ void col2im_gpu_kernel(const int n, const Dtype* data_col,
         val += data_col[offset + h_col * coeff_h_col + w_col * coeff_w_col];
       }
     }
-    data_im[index] = val;
+    // THIS IS NOW += instead of =, assuming the data in data_im is important, otherwise already set to zero!
+    if (clear_input)
+      data_im[index] = val;
+    else
+      data_im[index] += val;
   }
 }
 
@@ -116,7 +120,7 @@ template <typename Dtype>
 void col2im_gpu(const Dtype* data_col, const int channels,
     const int height, const int width, const int patch_h, const int patch_w,
     const int pad_h, const int pad_w, const int stride_h,
-    const int stride_w, Dtype* data_im) {
+    const int stride_w, Dtype* data_im, const bool clear_input) {
   int height_col = (height + 2 * pad_h - patch_h) / stride_h + 1;
   int width_col = (width + 2 * pad_w - patch_w) / stride_w + 1;
   int num_kernels = channels * height * width;
@@ -127,7 +131,7 @@ void col2im_gpu(const Dtype* data_col, const int channels,
                              CAFFE_CUDA_NUM_THREADS>>>(
       num_kernels, data_col, height, width, channels, patch_h, patch_w,
       pad_h, pad_w, stride_h, stride_w,
-      height_col, width_col, data_im);
+      height_col, width_col, data_im, clear_input);
   CUDA_POST_KERNEL_CHECK;
 }
 
@@ -135,10 +139,10 @@ void col2im_gpu(const Dtype* data_col, const int channels,
 template void col2im_gpu<float>(const float* data_col, const int channels,
     const int height, const int width, const int patch_h, const int patch_w,
     const int pad_h, const int pad_w, const int stride_h,
-    const int stride_w, float* data_im);
+    const int stride_w, float* data_im, const bool clear_input);
 template void col2im_gpu<double>(const double* data_col, const int channels,
     const int height, const int width, const int patch_h, const int patch_w,
     const int pad_h, const int pad_w, const int stride_h,
-    const int stride_w, double* data_im);
+    const int stride_w, double* data_im, const bool clear_input);
 
 }  // namespace caffe

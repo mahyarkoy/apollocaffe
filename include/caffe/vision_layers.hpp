@@ -35,7 +35,7 @@ class BaseConvolutionLayer : public Layer<Dtype> {
   virtual inline bool EqualNumBottomTopBlobs() const { return true; }
   virtual inline bool IgnoreChecks() const {return false;}
   virtual inline float WeightGradAccumRate() {return 1.0;}
-  virtual inline float InputGradAccumRate() {return 0.0;}
+  virtual inline float InputGradClear() {return 1;} //1 means do not accumulate
   virtual inline bool SingleWeightChannel() const {return false;}
 
  protected:
@@ -86,18 +86,18 @@ class BaseConvolutionLayer : public Layer<Dtype> {
     im2col_cpu(data, conv_in_channels_, conv_in_height_, conv_in_width_,
         kernel_h_, kernel_w_, pad_h_, pad_w_, stride_h_, stride_w_, col_buff);
   }
-  inline void conv_col2im_cpu(const Dtype* col_buff, Dtype* data) {
+  inline void conv_col2im_cpu(const Dtype* col_buff, Dtype* data, const bool clear_input=true) {
     col2im_cpu(col_buff, conv_in_channels_, conv_in_height_, conv_in_width_,
-        kernel_h_, kernel_w_, pad_h_, pad_w_, stride_h_, stride_w_, data);
+        kernel_h_, kernel_w_, pad_h_, pad_w_, stride_h_, stride_w_, data, clear_input);
   }
 #ifndef CPU_ONLY
   inline void conv_im2col_gpu(const Dtype* data, Dtype* col_buff) {
     im2col_gpu(data, conv_in_channels_, conv_in_height_, conv_in_width_,
         kernel_h_, kernel_w_, pad_h_, pad_w_, stride_h_, stride_w_, col_buff);
   }
-  inline void conv_col2im_gpu(const Dtype* col_buff, Dtype* data) {
+  inline void conv_col2im_gpu(const Dtype* col_buff, Dtype* data, const bool clear_input=true) {
     col2im_gpu(col_buff, conv_in_channels_, conv_in_height_, conv_in_width_,
-        kernel_h_, kernel_w_, pad_h_, pad_w_, stride_h_, stride_w_, data);
+        kernel_h_, kernel_w_, pad_h_, pad_w_, stride_h_, stride_w_, data, clear_input);
   }
 #endif
 
@@ -212,13 +212,13 @@ class ParamConvolutionLayer : public BaseConvolutionLayer<Dtype> {
    *    kernels + stream parallelism) engines.
    */
   explicit ParamConvolutionLayer(const LayerParameter& param)
-      : BaseConvolutionLayer<Dtype>(param), _acc_weight_update(false) {}
+      : BaseConvolutionLayer<Dtype>(param), _acc_weight_update(0.0), _acc_input_update(0.0) {}
 
   virtual inline const char* type() const { return "ParamConvolution"; }
   virtual inline bool EqualNumBottomTopBlobs() const { return false; }
   virtual inline bool IgnoreChecks() const {return true;}
   virtual inline bool SingleWeightChannel() const {return true;}
-  virtual inline float WeightGardAccumRate() {
+  virtual inline float WeightGradAccumRate() {
   //  if (_acc_weight_update)
   //  {
   //    _acc_weight_update = false;
@@ -226,9 +226,10 @@ class ParamConvolutionLayer : public BaseConvolutionLayer<Dtype> {
   //  }
   //  else
   //    return 0;
-    return _acc_weight_update;
+    //return _acc_weight_update;
+    return 1.;
   }
-  virtual inline float InputGradAccumRate() {return _acc_input_update;}
+  virtual inline float InputGradClear() {return 0;} //0 means accumulate updates
 
  protected:
   virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
