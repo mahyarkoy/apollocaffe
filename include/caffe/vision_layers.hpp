@@ -212,7 +212,7 @@ class ParamConvolutionLayer : public BaseConvolutionLayer<Dtype> {
    *    kernels + stream parallelism) engines.
    */
   explicit ParamConvolutionLayer(const LayerParameter& param)
-      : BaseConvolutionLayer<Dtype>(param), _acc_weight_update(0.0), _acc_input_update(0.0) {}
+      : BaseConvolutionLayer<Dtype>(param), _acc_weight_update(0.), _acc_input_clear(1) {}
 
   virtual inline const char* type() const { return "ParamConvolution"; }
   virtual inline bool EqualNumBottomTopBlobs() const { return false; }
@@ -226,10 +226,9 @@ class ParamConvolutionLayer : public BaseConvolutionLayer<Dtype> {
   //  }
   //  else
   //    return 0;
-    //return _acc_weight_update;
-    return 1.;
+    return _acc_weight_update;
   }
-  virtual inline float InputGradClear() {return 0;} //0 means accumulate updates
+  virtual inline float InputGradClear() {return _acc_input_clear;} //0 means accumulate updates
 
  protected:
   virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
@@ -245,7 +244,7 @@ class ParamConvolutionLayer : public BaseConvolutionLayer<Dtype> {
 
 private:
   float _acc_weight_update;
-  float _acc_input_update;
+  float _acc_input_clear;
 };
 
 

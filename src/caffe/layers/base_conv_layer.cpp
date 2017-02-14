@@ -197,7 +197,8 @@ void BaseConvolutionLayer<Dtype>::backward_cpu_gemm(const Dtype* output,
   int accum = 0;
   if (is_1x1_) {
     col_buff = input;
-    accum = 1;
+    if (!InputGradClear())
+      accum = 1;
   }
   for (int g = 0; g < group_; ++g) {
     caffe_cpu_gemm<Dtype>(CblasTrans, CblasNoTrans, kernel_dim_ / group_,
@@ -268,7 +269,8 @@ void BaseConvolutionLayer<Dtype>::backward_gpu_gemm(const Dtype* output,
   int accum = 0;
   if (is_1x1_) {
     col_buff = input;
-    accum = 1;
+    if (!InputGradClear())
+      accum = 1;
   }
   for (int g = 0; g < group_; ++g) {
     caffe_gpu_gemm<Dtype>(CblasTrans, CblasNoTrans, kernel_dim_ / group_,
