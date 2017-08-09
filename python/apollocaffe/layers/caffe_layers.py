@@ -226,3 +226,15 @@ class Wordvec(Layer):
 class MultinomialLogisticLoss(LossLayer):
     def __init__(self, name, **kwargs):
         super(MultinomialLogisticLoss, self).__init__(self, name, kwargs)
+
+class BatchNorm(Layer):
+    def __init__(self, name, **kwargs):
+        super(BatchNorm, self).__init__(self, name, kwargs)
+
+class Scale(Layer):
+    def __init__(self, name, **kwargs):
+        super(Scale, self).__init__(self, name, kwargs)
+
+class Bias(Layer):
+    def __init__(self, name, **kwargs):
+        super(Scale, self).__init__(self, name, kwargs)
